@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Avaliação da Mostra de Ciências</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0f172a; /* azul escuro */
+      padding: 20px;
+      color: #f1f5f9; /* quase branco */
+    }
+
+    #areaPDF {
+      border: 4px solid #facc15; /* amarelo forte */
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 0 30px rgba(250, 204, 21, 0.6);
+      background-color: #1e293b; /* azul-acinzentado escuro */
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #f43f5e; /* rosa avermelhado */
+      margin-bottom: 30px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #334155; /* cinza-azulado */
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    th {
+      background-color: #0ea5e9; /* azul vibrante */
+      color: white;
+      padding: 14px;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #475569;
+      color: #f8fafc;
+    }
+
+    tr:nth-child(even) {
+      background-color: #1e40af; /* azul forte */
+    }
+
+    input[type='text'], input[type='number'] {
+      width: 95%;
+      padding: 6px;
+      border: 1px solid #64748b;
+      border-radius: 6px;
+      text-align: center;
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-weight: bold;
+    }
+
+    input.nome-aluno {
+      width: 300px;
+      text-align: left;
+    }
+
+    .btn {
+      margin: 20px 10px 0 10px;
+      background-color: #22c55e; /* verde forte */
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .btn:hover {
+      background-color: #15803d; /* verde escuro */
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    .coordenadores {
+      margin-top: 30px;
+      font-size: 16px;
+      padding: 10px;
+      border: 2px dashed #f87171; /* vermelho */
+      background: #fef9c3; /* amarelo claro */
+      border-radius: 8px;
+      min-height: 60px;
+      color: #1c1917;
+    }
+
+    #mediaContainer {
+      margin-top: 15px;
+      font-size: 18px;
+      font-weight: bold;
+      text-align: right;
+      color: #facc15; /* amarelo */
+    }
+  </style>
+</head>
+<body>
+  <div id="areaPDF">
+    <h1>Avaliação da Mostra de Ciências</h1>
+
+    <form id="formAvaliacao">
+      <table id="tabela">
+        <thead>
+          <tr>
+            <th>Ano</th>
+            <th>Nome do Aluno</th>
+            <th>Setor</th>
+            <th>Grupo</th>
+            <th>Título do Projeto</th>
+            <th>Categoria</th>
+            <th>Nota (0 a 7)</th>
+            <th>Porcentagem</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </form>
+
+    <div id="mediaContainer">Média das Notas: 0.0 (0%)</div>
+
+    <div class="coordenadores" contenteditable="true" id="coordenadores">
+      <strong>Professores Coordenadores:</strong><br />
+    </div>
+  </div>
+
+  <div class="center">
+    <button type="button" class="btn" onclick="adicionarLinha()">➕ Adicionar Linha</button>
+    <button type="button" class="btn" onclick="limparLinhas()">🗑️ Limpar Linhas</button>
+    <button type="button" class="btn" onclick="baixarPDF()">⬇️ Baixar PDF</button>
+  </div>
+
+  <!-- Biblioteca para gerar PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <script>
+    const VALOR_MAXIMO = 7;
+
+    function salvarTabelaNoLocalStorage() {
+      const dadosTabela = document.querySelector('#tabela tbody').innerHTML;
+      const coordenadores = document.getElementById('coordenadores').innerHTML;
+      localStorage.setItem('tabelaAvaliacao', dadosTabela);
+      localStorage.setItem('coordenadoresTexto', coordenadores);
+    }
+
+    function carregarTabelaDoLocalStorage() {
+      const salvoTabela = localStorage.getItem('tabelaAvaliacao');
+      const salvoCoordenadores = localStorage.getItem('coordenadoresTexto');
+
+      if (salvoTabela) {
+        document.querySelector('#tabela tbody').innerHTML = salvoTabela;
+        document.querySelectorAll('#tabela tbody input[type="number"]').forEach(input => {
+          input.oninput = atualizarPorcentagemEMedia;
+        });
+      } else {
+        adicionarLinha();
+      }
+
+      if (salvoCoordenadores) {
+        document.getElementById('coordenadores').innerHTML = salvoCoordenadores;
+      }
+
+      atualizarPorcentagemEMedia();
+    }
+
+    function adicionarLinha() {
+      const tbody = document.querySelector('#tabela tbody');
+      const linha = document.createElement('tr');
+      linha.innerHTML = `
+        <td><input type="text" value="1º Ano" /></td>
+        <td><input type="text" class="nome-aluno" value="Nome do Aluno" /></td>
+        <td><input type="text" value="Setor" /></td>
+        <td><input type="text" value="Grupo" /></td>
+        <td><input type="text" value="Projeto" /></td>
+        <td><input type="text" value="Categoria" /></td>
+        <td><input type="number" value="0" min="0" max="${VALOR_MAXIMO}" step="0.1" oninput="atualizarPorcentagemEMedia()" /></td>
+        <td><input type="text" value="0%" readonly /></td>
+      `;
+      tbody.appendChild(linha);
+      salvarTabelaNoLocalStorage();
+    }
+
+    function limparLinhas() {
+      document.querySelector('#tabela tbody').innerHTML = '';
+      salvarTabelaNoLocalStorage();
+      atualizarPorcentagemEMedia();
+    }
+
+    function atualizarPorcentagemEMedia() {
+      const linhas = document.querySelectorAll('#tabela tbody tr');
+      let soma = 0;
+      let total = 0;
+
+      linhas.forEach(linha => {
+        const notaInput = linha.cells[6].querySelector('input');
+        const nota = parseFloat(notaInput.value) || 0;
+        const porcentagem = (nota / VALOR_MAXIMO) * 100;
+        linha.cells[7].querySelector('input').value = `${porcentagem.toFixed(1)}%`;
+        soma += nota;
+        total++;
+      });
+
+      const media = total ? soma / total : 0;
+      const mediaPercentual = (media / VALOR_MAXIMO) * 100;
+      document.getElementById('mediaContainer').textContent =
+        `Média das Notas: ${media.toFixed(2)} (${mediaPercentual.toFixed(1)}%)`;
+
+      salvarTabelaNoLocalStorage();
+    }
+
+    function baixarPDF() {
+      const element = document.getElementById('areaPDF');
+      const opt = {
+        margin:       0.5,
+        filename:     'avaliacao_mostra_ciencias.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(element).save();
+    }
+
+    document.getElementById('coordenadores').addEventListener('input', salvarTabelaNoLocalStorage);
+
+    window.onload = carregarTabelaDoLocalStorage;
+  </script>
+</body>
+</html>
